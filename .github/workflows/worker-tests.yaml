@@ -1,0 +1,29 @@
+name: worker tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  worker_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: "1.23.6"
+
+      - name: Build worker Docker image
+        run: |
+          docker compose build
+
+      - name: Start worker in background
+        run: |
+          docker compose up -d
+
+      - name: Run tests
+        run: |
+          go test ./tests/worker/...
