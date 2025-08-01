@@ -27,12 +27,11 @@ func (w *Worker) StartTask(t task.Task) error {
 	cmd := exec.Command(t.Executable, t.Args...)
 	t.Process = cmd.Process
 
-	stdout, err := cmd.Output()
+	stdout, err := cmd.CombinedOutput()
+	os.Stdout.Write(stdout)
 	if err != nil {
 		return err
 	}
-
-	os.Stdout.Write(stdout)
 
 	w.Tasks[t.ID] = &t
 

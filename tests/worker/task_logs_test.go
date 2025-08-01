@@ -1,0 +1,59 @@
+package worker
+
+import (
+	"dirigeant/task"
+	"dirigeant/tests/helper"
+	"dirigeant/worker"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestTaskLogs__PrintFile(t *testing.T) {
+	tcs := []struct {
+		name           string
+		path           string
+		responseStatus int
+		responseBody   string
+		stdoutRegexp   string
+	}{
+		{
+			name:           "print-hosts-file",
+			path:           helper.HostsFilePath,
+			responseStatus: http.StatusCreated,
+			responseBody:   "",
+			stdoutRegexp:   "localhost",
+		},
+		{
+			name:           "print-non-existing-file",
+			path:           "non-existing-file.txt",
+			responseStatus: http.StatusInternalServerError,
+			responseBody:   "",
+			stdoutRegexp:   fmt.Sprintf(helper.NoFileErrorMessage, "non-existing-file.txt"),
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			request := httptest.NewRequest("POST", "/tasks", helper.JsonEncodeTask(helper.PrintFileTask(tc.name, tc.path)))
+			responseRecorder := httptest.NewRecorder()
+
+			stdout := helper.CaptureStdout(func() {
+				api := &worker.Api{
+					Worker: &worker.Worker{
+						Tasks: make(map[uuid.UUID]*task.Task),
+					},
+				}
+				api.HandleCreateTask(responseRecorder, request)
+			})
+
+			assert.Equal(t, tc.responseStatus, responseRecorder.Code)
+			assert.Equal(t, tc.responseBody, tc.responseBody)
+			assert.Regexp(t, tc.stdoutRegexp, stdout)
+		})
+	}
+}
