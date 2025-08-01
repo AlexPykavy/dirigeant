@@ -20,10 +20,6 @@ jobs:
         run: |
           docker compose build
 
-      - name: Start worker in background
-        run: |
-          docker compose up -d
-
       - name: Run tests
         run: |
           go test ./tests/worker/...
