@@ -2,21 +2,26 @@ package worker
 
 import (
 	"dirigeant/task"
+	"dirigeant/worker"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestListTasks__ShouldReturnAnEmptyList(t *testing.T) {
-	resp, err := http.Get("http://localhost:8080/tasks")
-	if err != nil {
-		t.Error(err)
+func TestListTasks__ShouldReturnAnEmptySlice(t *testing.T) {
+	request := httptest.NewRequest("GET", "/tasks", nil)
+	responseRecorder := httptest.NewRecorder()
+
+	api := &worker.Api{
+		Worker: &worker.Worker{},
 	}
+	api.HandleListTasks(responseRecorder, request)
 
 	tasks := []task.Task{}
-	json.NewDecoder(resp.Body).Decode(&tasks)
-
-	assert.Equal(t, tasks, []task.Task{}, "Returned tasks list should an empty slice")
+	json.NewDecoder(responseRecorder.Body).Decode(&tasks)
+	assert.Equal(t, responseRecorder.Code, http.StatusOK, "Response status code should be 200")
+	assert.Equal(t, tasks, []task.Task{}, "Response body should be an empty slice")
 }
