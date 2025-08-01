@@ -22,6 +22,6 @@ func TestListTasks__ShouldReturnAnEmptySlice(t *testing.T) {
 
 	tasks := []task.Task{}
 	json.NewDecoder(responseRecorder.Body).Decode(&tasks)
-	assert.Equal(t, responseRecorder.Code, http.StatusOK, "Response status code should be 200")
-	assert.Equal(t, tasks, []task.Task{}, "Response body should be an empty slice")
+	assert.Equal(t, http.StatusOK, responseRecorder.Code, "Response status code should be 200 OK")
+	assert.Equal(t, []task.Task{}, tasks, "Response body should be an empty slice")
 }
