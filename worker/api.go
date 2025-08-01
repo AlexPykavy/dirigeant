@@ -16,9 +16,12 @@ type Api struct {
 }
 
 func (a *Api) HandleListTasks(w http.ResponseWriter, _ *http.Request) {
-	tasks := a.Worker.ListTasks()
+	tasks := slices.Collect(a.Worker.ListTasks())
+	if tasks == nil {
+		tasks = []*task.Task{}
+	}
 
-	responseBody, err := json.Marshal(slices.Collect(tasks))
+	responseBody, err := json.Marshal(tasks)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Error marshalling the response: %v", err)
