@@ -58,6 +58,19 @@ func JsonEncodeTask(t task.Task) io.Reader {
 	return w
 }
 
+func NewTaskGetRequest(id uuid.UUID) *http.Request {
+	if id == uuid.Nil {
+		return httptest.NewRequest("GET", "/tasks", nil)
+	}
+
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", id.String())
+
+	r := httptest.NewRequest("GET", fmt.Sprintf("/tasks/%s", id), nil)
+
+	return r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
+}
+
 func NewTaskPostRequest(t task.Task) *http.Request {
 	return httptest.NewRequest("POST", "/tasks", JsonEncodeTask(t))
 }

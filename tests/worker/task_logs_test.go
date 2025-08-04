@@ -39,15 +39,15 @@ func TestTaskLogs__PrintFile(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			request := httptest.NewRequest("POST", "/tasks", helper.JsonEncodeTask(helper.PrintFileTask(tc.name, tc.path)))
+			api := &worker.Api{
+				Worker: &worker.Worker{
+					Tasks: make(map[uuid.UUID]*task.Task),
+				},
+			}
+			request := helper.NewTaskPostRequest(helper.PrintFileTask(tc.name, tc.path))
 			responseRecorder := httptest.NewRecorder()
 
 			stdout := helper.CaptureStdout(func() {
-				api := &worker.Api{
-					Worker: &worker.Worker{
-						Tasks: make(map[uuid.UUID]*task.Task),
-					},
-				}
 				api.HandleCreateTask(responseRecorder, request)
 			})
 
