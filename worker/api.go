@@ -3,6 +3,7 @@ package worker
 import (
 	"dirigeant/task"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -86,7 +87,12 @@ func (a *Api) HandleDeleteTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := a.Worker.StopTask(taskId); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		if errors.Is(err, task.ErrNotExists) {
+			w.WriteHeader(http.StatusNotFound)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+
 		fmt.Fprintf(w, "Error when stopping the task: %v", err)
 		return
 	}
