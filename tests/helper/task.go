@@ -16,18 +16,30 @@ import (
 )
 
 var (
-	HostsFilePath      string
-	NoFileErrorMessage string
+	HostsFilePath          string
+	NoFileErrMessage       string
+	SignalKilledErrMessage string
 )
 
 func init() {
 	switch runtime.GOOS {
 	case "windows":
 		HostsFilePath = "$env:windir/System32/drivers/etc/hosts"
-		NoFileErrorMessage = "Cannot find path (\\r\\n)*'.+%s' because (\\r\\n)*it (\\r\\n)*does (\\r\\n)*not (\\r\\n)*exist."
+		NoFileErrMessage = "Cannot find path (\\r\\n)*'.+%s' because (\\r\\n)*it (\\r\\n)*does (\\r\\n)*not (\\r\\n)*exist."
+		SignalKilledErrMessage = "exit status 1"
 	case "linux":
 		HostsFilePath = "/etc/hosts"
-		NoFileErrorMessage = "%s: No such file or directory"
+		NoFileErrMessage = "%s: No such file or directory"
+		SignalKilledErrMessage = "signal: killed"
+	}
+}
+
+func PingTask(name, host string) task.Task {
+	return task.Task{
+		ID:         uuid.New(),
+		Name:       name,
+		Executable: "ping",
+		Args:       []string{host, "-n", "20"},
 	}
 }
 
