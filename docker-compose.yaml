@@ -1,5 +1,10 @@
 services:
   worker:
     build: .
+    deploy:
+      resources:
+        limits:
+          cpus: 0.5
+          memory: 64MB
     ports:
       - 8080:8080

@@ -1,4 +1,5 @@
 *.md
 /LICENSE
 /docs
+docker-compose.yaml
 Dockerfile
