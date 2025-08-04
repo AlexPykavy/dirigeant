@@ -2,7 +2,6 @@ package worker
 
 import (
 	"dirigeant/task"
-	"fmt"
 	"iter"
 	"maps"
 	"os"
@@ -24,10 +23,9 @@ func (w *Worker) GetTask(id uuid.UUID) *task.Task {
 }
 
 func (w *Worker) StartTask(t task.Task) error {
-	cmd := exec.Command(t.Executable, t.Args...)
-	t.Process = cmd.Process
+	t.Cmd = exec.Command(t.Executable, t.Args...)
 
-	stdout, err := cmd.CombinedOutput()
+	stdout, err := t.Cmd.CombinedOutput()
 	os.Stdout.Write(stdout)
 	if err != nil {
 		return err
@@ -41,8 +39,16 @@ func (w *Worker) StartTask(t task.Task) error {
 func (w *Worker) StopTask(id uuid.UUID) error {
 	t := w.GetTask(id)
 	if t == nil {
-		return fmt.Errorf("%s not found", id)
+		return task.ErrNotExists
 	}
 
-	return t.Process.Kill()
+	if t.Cmd.ProcessState == nil {
+		if err := t.Cmd.Process.Kill(); err != nil {
+			return err
+		}
+	}
+
+	delete(w.Tasks, t.ID)
+
+	return nil
 }

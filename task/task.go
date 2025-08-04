@@ -1,9 +1,14 @@
 package task
 
 import (
-	"os"
+	"errors"
+	"os/exec"
 
 	"github.com/google/uuid"
+)
+
+var (
+	ErrNotExists = errors.New("task does not exist")
 )
 
 type Task struct {
@@ -12,5 +17,5 @@ type Task struct {
 	Executable string
 	Args       []string
 
-	Process *os.Process
+	Cmd *exec.Cmd
 }

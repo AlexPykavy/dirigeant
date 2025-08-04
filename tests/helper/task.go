@@ -2,11 +2,16 @@ package helper
 
 import (
 	"bytes"
+	"context"
 	"dirigeant/task"
 	"encoding/json"
+	"fmt"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"runtime"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
 
@@ -51,4 +56,17 @@ func JsonEncodeTask(t task.Task) io.Reader {
 	w := &bytes.Buffer{}
 	json.NewEncoder(w).Encode(t)
 	return w
+}
+
+func NewTaskPostRequest(t task.Task) *http.Request {
+	return httptest.NewRequest("POST", "/tasks", JsonEncodeTask(t))
+}
+
+func NewTaskDeleteRequest(id uuid.UUID) *http.Request {
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", id.String())
+
+	r := httptest.NewRequest("DELETE", fmt.Sprintf("/tasks/%s", id), nil)
+
+	return r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
 }
