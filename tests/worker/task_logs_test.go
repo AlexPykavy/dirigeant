@@ -33,7 +33,7 @@ func TestTaskLogs__PrintFile(t *testing.T) {
 			path:           "non-existing-file.txt",
 			responseStatus: http.StatusInternalServerError,
 			responseBody:   "Error when executing the task: exit status 1",
-			stdoutRegexp:   fmt.Sprintf(helper.NoFileErrorMessage, "non-existing-file.txt"),
+			stdoutRegexp:   fmt.Sprintf(helper.NoFileErrMessage, "non-existing-file.txt"),
 		},
 	}
 

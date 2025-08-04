@@ -24,14 +24,13 @@ func (w *Worker) GetTask(id uuid.UUID) *task.Task {
 
 func (w *Worker) StartTask(t task.Task) error {
 	t.Cmd = exec.Command(t.Executable, t.Args...)
+	w.Tasks[t.ID] = &t
 
 	stdout, err := t.Cmd.CombinedOutput()
 	os.Stdout.Write(stdout)
 	if err != nil {
 		return err
 	}
-
-	w.Tasks[t.ID] = &t
 
 	return nil
 }
