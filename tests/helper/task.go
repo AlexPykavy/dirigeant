@@ -19,7 +19,7 @@ func init() {
 	switch runtime.GOOS {
 	case "windows":
 		HostsFilePath = "$env:windir/System32/drivers/etc/hosts"
-		NoFileErrorMessage = "Cannot find path \\r\\n'.+%s' because it does not exist."
+		NoFileErrorMessage = "Cannot find path (\\r\\n)*'.+%s' because (\\r\\n)*it (\\r\\n)*does (\\r\\n)*not (\\r\\n)*exist."
 	case "linux":
 		HostsFilePath = "/etc/hosts"
 		NoFileErrorMessage = "%s: No such file or directory"
