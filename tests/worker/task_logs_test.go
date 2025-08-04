@@ -32,7 +32,7 @@ func TestTaskLogs__PrintFile(t *testing.T) {
 			name:           "print-non-existing-file",
 			path:           "non-existing-file.txt",
 			responseStatus: http.StatusInternalServerError,
-			responseBody:   "",
+			responseBody:   "Error when executing the task: exit status 1",
 			stdoutRegexp:   fmt.Sprintf(helper.NoFileErrorMessage, "non-existing-file.txt"),
 		},
 	}
@@ -52,7 +52,7 @@ func TestTaskLogs__PrintFile(t *testing.T) {
 			})
 
 			assert.Equal(t, tc.responseStatus, responseRecorder.Code)
-			assert.Equal(t, tc.responseBody, tc.responseBody)
+			assert.Equal(t, tc.responseBody, responseRecorder.Body.String())
 			assert.Regexp(t, tc.stdoutRegexp, stdout)
 		})
 	}
