@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"context"
 	"dirigeant/task"
 	"dirigeant/tests/helper"
 	"dirigeant/worker"
@@ -9,6 +10,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -104,4 +106,42 @@ func TestStartTask__AllButOneRequestsShouldFailIfCreatingTheSameTaskSimultaneous
 	assert.Equal(t, numOfRequests-1, conflictedRequests, "There should be only N-1 conflicted requests")
 	assert.Equal(t, 1, len(api.Worker.Tasks), "Tasks map should contain 1 task")
 	assert.NotNil(t, api.Worker.Tasks[testTask.ID], "Persisted task ID should match the one from request")
+}
+
+func TestStartTask__ShouldHandleClientClosedRequest(t *testing.T) {
+	api := &worker.Api{
+		Worker: &worker.Worker{
+			Tasks: make(map[uuid.UUID]*task.Task),
+		},
+	}
+	testTask := helper.PingTask("ping-task", "127.0.0.1")
+	ctx, cancel := context.WithCancel(context.TODO())
+
+	// 1 - Create a task
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		createRequest := helper.NewTaskPostRequest(testTask).WithContext(ctx)
+		createResponseRecorder := httptest.NewRecorder()
+
+		stdout := helper.CaptureStdout(func() {
+			api.HandleCreateTask(createResponseRecorder, createRequest)
+		})
+
+		assert.Equal(t, 499, createResponseRecorder.Code, "Response status code should be 499 Client Closed Request")
+		assert.Equal(t, "Error when executing the task: client closed request", createResponseRecorder.Body.String(), "Response body should contain error message")
+		assert.NotEmpty(t, stdout, "Task logs shouldn't be empty")
+		assert.Empty(t, api.Worker.Tasks, "Tasks map should be empty")
+	}()
+
+	time.Sleep(1 * time.Second)
+
+	assert.Equal(t, 1, len(api.Worker.Tasks), "Tasks map should contain 1 task")
+
+	// 2 - Cancel a request
+	cancel()
+
+	wg.Wait()
 }

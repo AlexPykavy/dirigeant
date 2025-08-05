@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"fmt"
 	"io"
 	"os"
 )
@@ -16,6 +17,8 @@ func CaptureStdout(f func()) string {
 	}()
 
 	f()
+
+	fmt.Println() // to flush data
 
 	w.Close()
 	b, _ := io.ReadAll(r)

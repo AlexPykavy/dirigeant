@@ -69,18 +69,34 @@ func (a *Api) HandleCreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.Worker.StartTask(t); err != nil {
-		if errors.Is(err, task.ErrAlreadyExists) {
-			w.WriteHeader(http.StatusConflict)
-		} else {
-			w.WriteHeader(http.StatusInternalServerError)
+	errCh := make(chan error)
+	defer close(errCh)
+	go func() {
+		errCh <- a.Worker.StartTask(t)
+	}()
+
+	select {
+	case <-r.Context().Done():
+		a.Worker.StopTask(t.ID)
+
+		<-errCh
+
+		w.WriteHeader(499) // client closed request
+		fmt.Fprint(w, "Error when executing the task: client closed request")
+	case err := <-errCh:
+		if err != nil {
+			if errors.Is(err, task.ErrAlreadyExists) {
+				w.WriteHeader(http.StatusConflict)
+			} else {
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+
+			fmt.Fprintf(w, "Error when executing the task: %v", err)
+			return
 		}
 
-		fmt.Fprintf(w, "Error when executing the task: %v", err)
-		return
+		w.WriteHeader(http.StatusCreated)
 	}
-
-	w.WriteHeader(http.StatusCreated)
 }
 
 func (a *Api) HandleDeleteTask(w http.ResponseWriter, r *http.Request) {
