@@ -8,7 +8,16 @@ on:
 
 jobs:
   worker_tests:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [Linux, Windows]
+        include:
+        - os: Linux
+          pool: ubuntu-latest
+        - os: Windows
+          pool: windows-latest
+    name: Run tests on ${{ matrix.os }}
+    runs-on: ${{ matrix.pool }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
@@ -17,6 +26,7 @@ jobs:
           go-version: "1.23.6"
 
       - name: Build worker Docker image
+        if: ${{ matrix.os != 'Windows' }}
         run: |
           docker compose build
 
