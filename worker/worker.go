@@ -23,6 +23,10 @@ func (w *Worker) GetTask(id uuid.UUID) *task.Task {
 }
 
 func (w *Worker) StartTask(t task.Task) error {
+	if _, ok := w.Tasks[t.ID]; ok {
+		return task.ErrAlreadyExists
+	}
+
 	t.Cmd = exec.Command(t.Executable, t.Args...)
 	w.Tasks[t.ID] = &t
 
