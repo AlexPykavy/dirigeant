@@ -11,6 +11,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /app ./cmd/worker
 
 FROM ubuntu:noble
 
+RUN apt-get update && apt-get install lsof iputils-ping -y
+
 COPY --from=build /app /app
 
 EXPOSE 8080
