@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 
 	"github.com/google/uuid"
@@ -58,6 +59,49 @@ func TestStartTask__ShouldReturnAnErrorIfCreatingTheSameTaskTwice(t *testing.T) 
 
 	assert.Equal(t, http.StatusConflict, secondResponseRecorder.Code, "Response status code should be 409 Conflict")
 	assert.Equal(t, fmt.Sprintf("Error when executing the task: %s", task.ErrAlreadyExists), secondResponseRecorder.Body.String(), "Response body should contain error message")
+	assert.Equal(t, 1, len(api.Worker.Tasks), "Tasks map should contain 1 task")
+	assert.NotNil(t, api.Worker.Tasks[testTask.ID], "Persisted task ID should match the one from request")
+}
+
+func TestStartTask__AllButOneRequestsShouldFailIfCreatingTheSameTaskSimultaneously(t *testing.T) {
+	api := &worker.Api{
+		Worker: &worker.Worker{
+			Tasks: make(map[uuid.UUID]*task.Task),
+		},
+	}
+	testTask := helper.PrintFileTask("print-task", helper.HostsFilePath)
+	numOfRequests := 10
+	requests := make([]*http.Request, numOfRequests)
+	responseRecorders := make([]*httptest.ResponseRecorder, numOfRequests)
+
+	var wg sync.WaitGroup
+	for i := range numOfRequests {
+		wg.Add(1)
+
+		requests[i] = helper.NewTaskPostRequest(testTask)
+		responseRecorders[i] = httptest.NewRecorder()
+
+		go func() {
+			defer wg.Done()
+
+			api.HandleCreateTask(responseRecorders[i], requests[i])
+		}()
+	}
+
+	wg.Wait()
+
+	succeededRequests, conflictedRequests := 0, 0
+	for i := range numOfRequests {
+		switch responseRecorders[i].Code {
+		case http.StatusCreated:
+			succeededRequests++
+		case http.StatusConflict:
+			conflictedRequests++
+		}
+	}
+
+	assert.Equal(t, 1, succeededRequests, "There should be only 1 succeeded request")
+	assert.Equal(t, numOfRequests-1, conflictedRequests, "There should be only N-1 conflicted requests")
 	assert.Equal(t, 1, len(api.Worker.Tasks), "Tasks map should contain 1 task")
 	assert.NotNil(t, api.Worker.Tasks[testTask.ID], "Persisted task ID should match the one from request")
 }
