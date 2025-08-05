@@ -9,6 +9,7 @@ on:
 jobs:
   worker_tests:
     strategy:
+      fail-fast: false
       matrix:
         os: [Linux, Windows]
         include:
