@@ -70,7 +70,12 @@ func (a *Api) HandleCreateTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := a.Worker.StartTask(t); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		if errors.Is(err, task.ErrAlreadyExists) {
+			w.WriteHeader(http.StatusConflict)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+
 		fmt.Fprintf(w, "Error when executing the task: %v", err)
 		return
 	}

@@ -1,0 +1,63 @@
+package worker
+
+import (
+	"dirigeant/task"
+	"dirigeant/tests/helper"
+	"dirigeant/worker"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestStartTask__ShouldPersistTask(t *testing.T) {
+	api := &worker.Api{
+		Worker: &worker.Worker{
+			Tasks: make(map[uuid.UUID]*task.Task),
+		},
+	}
+	testTask := helper.PrintFileTask("print-task", helper.HostsFilePath)
+	request := helper.NewTaskPostRequest(testTask)
+	responseRecorder := httptest.NewRecorder()
+
+	api.HandleCreateTask(responseRecorder, request)
+
+	assert.Equal(t, http.StatusCreated, responseRecorder.Code, "Response status code should be 201 Created")
+	assert.Empty(t, responseRecorder.Body, "Response body should be empty")
+	assert.Equal(t, 1, len(api.Worker.Tasks), "Tasks map should contain 1 task")
+	assert.NotNil(t, api.Worker.Tasks[testTask.ID], "Persisted task ID should match the one from request")
+}
+
+func TestStartTask__ShouldReturnAnErrorIfCreatingTheSameTaskTwice(t *testing.T) {
+	api := &worker.Api{
+		Worker: &worker.Worker{
+			Tasks: make(map[uuid.UUID]*task.Task),
+		},
+	}
+	testTask := helper.PrintFileTask("print-task", helper.HostsFilePath)
+
+	// 1 - Create a task for the first time
+	firstRequest := helper.NewTaskPostRequest(testTask)
+	firstResponseRecorder := httptest.NewRecorder()
+
+	api.HandleCreateTask(firstResponseRecorder, firstRequest)
+
+	assert.Equal(t, http.StatusCreated, firstResponseRecorder.Code, "Response status code should be 201 Created")
+	assert.Empty(t, firstResponseRecorder.Body, "Response body should be empty")
+	assert.Equal(t, 1, len(api.Worker.Tasks), "Tasks map should contain 1 task")
+	assert.NotNil(t, api.Worker.Tasks[testTask.ID], "Persisted task ID should match the one from request")
+
+	// 2 - Create the same task for the second time
+	secondRequest := helper.NewTaskPostRequest(testTask)
+	secondResponseRecorder := httptest.NewRecorder()
+
+	api.HandleCreateTask(secondResponseRecorder, secondRequest)
+
+	assert.Equal(t, http.StatusConflict, secondResponseRecorder.Code, "Response status code should be 409 Conflict")
+	assert.Equal(t, fmt.Sprintf("Error when executing the task: %s", task.ErrAlreadyExists), secondResponseRecorder.Body.String(), "Response body should contain error message")
+	assert.Equal(t, 1, len(api.Worker.Tasks), "Tasks map should contain 1 task")
+	assert.NotNil(t, api.Worker.Tasks[testTask.ID], "Persisted task ID should match the one from request")
+}
