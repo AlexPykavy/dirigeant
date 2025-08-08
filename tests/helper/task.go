@@ -35,11 +35,23 @@ func init() {
 }
 
 func PingTask(name, host string) task.Task {
-	return task.Task{
-		ID:         uuid.New(),
-		Name:       name,
-		Executable: "ping",
-		Args:       []string{host, "-n", "20"},
+	switch runtime.GOOS {
+	case "windows":
+		return task.Task{
+			ID:         uuid.New(),
+			Name:       name,
+			Executable: "ping",
+			Args:       []string{"-n", "20", host},
+		}
+	case "linux":
+		fallthrough
+	default:
+		return task.Task{
+			ID:         uuid.New(),
+			Name:       name,
+			Executable: "ping",
+			Args:       []string{"-c", "20", host},
+		}
 	}
 }
 
