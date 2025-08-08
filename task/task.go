@@ -29,5 +29,5 @@ type Task struct {
 
 	Status TaskStatus
 
-	Cmd *exec.Cmd
+	Cmd *exec.Cmd `json:"-"`
 }

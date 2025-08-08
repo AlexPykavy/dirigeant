@@ -76,6 +76,12 @@ func PrintFileTask(name, path string) task.Task {
 	}
 }
 
+func JsonDecodeTask(r io.Reader) task.Task {
+	var t task.Task
+	json.NewDecoder(r).Decode(&t)
+	return t
+}
+
 func JsonEncodeTask(t task.Task) io.Reader {
 	w := &bytes.Buffer{}
 	json.NewEncoder(w).Encode(t)
