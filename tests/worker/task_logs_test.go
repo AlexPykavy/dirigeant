@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"dirigeant/task"
 	"dirigeant/tests/helper"
 	"dirigeant/worker"
 	"fmt"
@@ -9,7 +8,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,9 +38,7 @@ func TestTaskLogs__PrintFile(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			api := &worker.Api{
-				Worker: &worker.Worker{
-					Tasks: make(map[uuid.UUID]*task.Task),
-				},
+				Worker: worker.NewWorker(),
 			}
 			request := helper.NewTaskPostRequest(helper.PrintFileTask(tc.name, tc.path))
 			responseRecorder := httptest.NewRecorder()

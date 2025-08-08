@@ -14,33 +14,46 @@ import (
 type Worker struct {
 	sync.RWMutex
 
-	Tasks map[uuid.UUID]*task.Task
+	tasks map[uuid.UUID]*task.Task
+}
+
+func NewWorker() *Worker {
+	return &Worker{
+		tasks: make(map[uuid.UUID]*task.Task),
+	}
+}
+
+func (w *Worker) LenTasks() int {
+	w.RLock()
+	defer w.RUnlock()
+
+	return len(w.tasks)
 }
 
 func (w *Worker) ListTasks() iter.Seq[*task.Task] {
 	w.RLock()
 	defer w.RUnlock()
 
-	return maps.Values(w.Tasks)
+	return maps.Values(w.tasks)
 }
 
 func (w *Worker) GetTask(id uuid.UUID) *task.Task {
 	w.RLock()
 	defer w.RUnlock()
 
-	return w.Tasks[id]
+	return w.tasks[id]
 }
 
 func (w *Worker) StartTask(t task.Task) error {
 	w.Lock()
 
-	if _, ok := w.Tasks[t.ID]; ok {
+	if _, ok := w.tasks[t.ID]; ok {
 		w.Unlock()
 		return task.ErrAlreadyExists
 	}
 
 	t.Cmd = exec.Command(t.Executable, t.Args...)
-	w.Tasks[t.ID] = &t
+	w.tasks[t.ID] = &t
 
 	w.Unlock()
 
@@ -57,7 +70,7 @@ func (w *Worker) StopTask(id uuid.UUID) error {
 	w.Lock()
 	defer w.Unlock()
 
-	t := w.Tasks[id]
+	t := w.tasks[id]
 	if t == nil {
 		return task.ErrNotExists
 	}
@@ -68,7 +81,7 @@ func (w *Worker) StopTask(id uuid.UUID) error {
 		}
 	}
 
-	delete(w.Tasks, t.ID)
+	delete(w.tasks, t.ID)
 
 	return nil
 }

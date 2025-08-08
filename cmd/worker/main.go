@@ -1,20 +1,16 @@
 package main
 
 import (
-	"dirigeant/task"
 	"dirigeant/worker"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/google/uuid"
 )
 
 func main() {
 	api := &worker.Api{
-		Worker: &worker.Worker{
-			Tasks: make(map[uuid.UUID]*task.Task),
-		},
+		Worker: worker.NewWorker(),
 	}
 	r := chi.NewRouter()
 
