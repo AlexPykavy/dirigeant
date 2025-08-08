@@ -53,6 +53,7 @@ func (w *Worker) StartTask(t task.Task) error {
 	}
 
 	t.Cmd = exec.Command(t.Executable, t.Args...)
+	t.Status = task.Running
 	w.tasks[t.ID] = &t
 
 	w.Unlock()
@@ -60,8 +61,11 @@ func (w *Worker) StartTask(t task.Task) error {
 	stdout, err := t.Cmd.CombinedOutput()
 	os.Stdout.Write(stdout)
 	if err != nil {
+		t.Status = task.Failed
 		return err
 	}
+
+	t.Status = task.Succeeded
 
 	return nil
 }
@@ -79,6 +83,8 @@ func (w *Worker) StopTask(id uuid.UUID) error {
 		if err := t.Cmd.Process.Kill(); err != nil {
 			return err
 		}
+
+		t.Status = task.Stopped
 	}
 
 	delete(w.tasks, t.ID)

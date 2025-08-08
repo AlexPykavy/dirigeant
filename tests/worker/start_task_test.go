@@ -27,8 +27,12 @@ func TestStartTask__ShouldPersistTask(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, responseRecorder.Code, "Response status code should be 201 Created")
 	assert.Empty(t, responseRecorder.Body, "Response body should be empty")
-	assert.Equal(t, 1, api.Worker.LenTasks(), "Tasks map should contain 1 task")
-	assert.NotNil(t, api.Worker.GetTask(testTask.ID), "Persisted task ID should match the one from request")
+	assert.Equal(t, 1, api.Worker.LenTasks(), "Worker should have 1 task")
+
+	persistedTask := api.Worker.GetTask(testTask.ID)
+
+	assert.NotNil(t, persistedTask, "Persisted task ID should match the one from request")
+	assert.Equal(t, task.Succeeded, persistedTask.Status, "Persisted task Status should be Succeeded")
 }
 
 func TestStartTask__ShouldReturnAnErrorIfCreatingTheSameTaskTwice(t *testing.T) {
@@ -45,8 +49,12 @@ func TestStartTask__ShouldReturnAnErrorIfCreatingTheSameTaskTwice(t *testing.T) 
 
 	assert.Equal(t, http.StatusCreated, firstResponseRecorder.Code, "Response status code should be 201 Created")
 	assert.Empty(t, firstResponseRecorder.Body, "Response body should be empty")
-	assert.Equal(t, 1, api.Worker.LenTasks(), "Tasks map should contain 1 task")
-	assert.NotNil(t, api.Worker.GetTask(testTask.ID), "Persisted task ID should match the one from request")
+	assert.Equal(t, 1, api.Worker.LenTasks(), "Worker should have 1 task")
+
+	persistedTask := api.Worker.GetTask(testTask.ID)
+
+	assert.NotNil(t, persistedTask, "Persisted task ID should match the one from request")
+	assert.Equal(t, task.Succeeded, persistedTask.Status, "Persisted task Status should be Succeeded")
 
 	// 2 - Create the same task for the second time
 	secondRequest := helper.NewTaskPostRequest(testTask)
@@ -56,8 +64,11 @@ func TestStartTask__ShouldReturnAnErrorIfCreatingTheSameTaskTwice(t *testing.T) 
 
 	assert.Equal(t, http.StatusConflict, secondResponseRecorder.Code, "Response status code should be 409 Conflict")
 	assert.Equal(t, fmt.Sprintf("Error when executing the task: %s", task.ErrAlreadyExists), secondResponseRecorder.Body.String(), "Response body should contain error message")
-	assert.Equal(t, 1, api.Worker.LenTasks(), "Tasks map should contain 1 task")
-	assert.NotNil(t, api.Worker.GetTask(testTask.ID), "Persisted task ID should match the one from request")
+
+	persistedTask = api.Worker.GetTask(testTask.ID)
+
+	assert.NotNil(t, persistedTask, "Persisted task ID should match the one from request")
+	assert.Equal(t, task.Succeeded, persistedTask.Status, "Persisted task Status should be Succeeded")
 }
 
 func TestStartTask__AllButOneRequestsShouldFailIfCreatingTheSameTaskSimultaneously(t *testing.T) {
@@ -97,8 +108,12 @@ func TestStartTask__AllButOneRequestsShouldFailIfCreatingTheSameTaskSimultaneous
 
 	assert.Equal(t, 1, succeededRequests, "There should be only 1 succeeded request")
 	assert.Equal(t, numOfRequests-1, conflictedRequests, "There should be only N-1 conflicted requests")
-	assert.Equal(t, 1, api.Worker.LenTasks(), "Tasks map should contain 1 task")
-	assert.NotNil(t, api.Worker.GetTask(testTask.ID), "Persisted task ID should match the one from request")
+	assert.Equal(t, 1, api.Worker.LenTasks(), "Worker should have 1 task")
+
+	persistedTask := api.Worker.GetTask(testTask.ID)
+
+	assert.NotNil(t, persistedTask, "Persisted task ID should match the one from request")
+	assert.Equal(t, task.Succeeded, persistedTask.Status, "Persisted task Status should be Succeeded")
 }
 
 func TestStartTask__ShouldHandleClientClosedRequest(t *testing.T) {
@@ -124,12 +139,17 @@ func TestStartTask__ShouldHandleClientClosedRequest(t *testing.T) {
 		assert.Equal(t, 499, createResponseRecorder.Code, "Response status code should be 499 Client Closed Request")
 		assert.Equal(t, "Error when executing the task: client closed request", createResponseRecorder.Body.String(), "Response body should contain error message")
 		assert.NotEmpty(t, stdout, "Task logs shouldn't be empty")
-		assert.Zero(t, api.Worker.LenTasks(), "Tasks map should be empty")
+		assert.Zero(t, api.Worker.LenTasks(), "Worker should have no tasks")
 	}()
 
 	time.Sleep(1 * time.Second)
 
-	assert.Equal(t, 1, api.Worker.LenTasks(), "Tasks map should contain 1 task")
+	assert.Equal(t, 1, api.Worker.LenTasks(), "Worker should have 1 task")
+
+	persistedTask := api.Worker.GetTask(testTask.ID)
+
+	assert.NotNil(t, persistedTask, "Persisted task ID should match the one from request")
+	assert.Equal(t, task.Running, persistedTask.Status, "Persisted task Status should be Running")
 
 	// 2 - Cancel a request
 	cancel()

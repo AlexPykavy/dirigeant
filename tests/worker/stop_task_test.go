@@ -41,7 +41,7 @@ func TestStopTask__ShouldStopCompletedTask(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, responseRecorder.Code, "Response status code should be 201 Created")
 	assert.Empty(t, responseRecorder.Body, "Response body should be empty")
-	assert.Equal(t, 1, api.Worker.LenTasks(), "Tasks map should contain 1 task")
+	assert.Equal(t, 1, api.Worker.LenTasks(), "Worker should have 1 task")
 
 	// 2 - Delete a task
 	request = helper.NewTaskDeleteRequest(testTask.ID)
@@ -51,7 +51,7 @@ func TestStopTask__ShouldStopCompletedTask(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, responseRecorder.Code, "Response status code should be 204 No Content")
 	assert.Empty(t, responseRecorder.Body, "Response body should be empty")
-	assert.Zero(t, api.Worker.LenTasks(), "Tasks map should be empty")
+	assert.Zero(t, api.Worker.LenTasks(), "Worker should have no tasks")
 }
 
 func TestStopTask__ShouldStopRunningTask(t *testing.T) {
@@ -73,12 +73,17 @@ func TestStopTask__ShouldStopRunningTask(t *testing.T) {
 
 		assert.Equal(t, http.StatusInternalServerError, createResponseRecorder.Code, "Response status code should be 500 Internal Server Error")
 		assert.Equal(t, fmt.Sprintf("Error when executing the task: %s", helper.SignalKilledErrMessage), createResponseRecorder.Body.String(), "Response body should contain error message")
-		assert.Zero(t, api.Worker.LenTasks(), "Tasks map should be empty")
+		assert.Zero(t, api.Worker.LenTasks(), "Worker should have no tasks")
 	}()
 
 	time.Sleep(1 * time.Second)
 
-	assert.Equal(t, 1, api.Worker.LenTasks(), "Tasks map should contain 1 task")
+	assert.Equal(t, 1, api.Worker.LenTasks(), "Worker should have 1 task")
+
+	persistedTask := api.Worker.GetTask(testTask.ID)
+
+	assert.NotNil(t, persistedTask, "Persisted task ID should match the one from request")
+	assert.Equal(t, task.Running, persistedTask.Status, "Persisted task Status should be Running")
 
 	// 2 - Delete a task
 	deleteRequest := helper.NewTaskDeleteRequest(testTask.ID)
@@ -88,7 +93,7 @@ func TestStopTask__ShouldStopRunningTask(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, deleteResponseRecorder.Code, "Response status code should be 204 No Content")
 	assert.Empty(t, deleteResponseRecorder.Body, "Response body should be empty")
-	assert.Zero(t, api.Worker.LenTasks(), "Tasks map should be empty")
+	assert.Zero(t, api.Worker.LenTasks(), "Worker should have no tasks")
 
 	wg.Wait()
 }

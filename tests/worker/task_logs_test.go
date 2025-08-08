@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"dirigeant/task"
 	"dirigeant/tests/helper"
 	"dirigeant/worker"
 	"fmt"
@@ -18,6 +19,7 @@ func TestTaskLogs__PrintFile(t *testing.T) {
 		responseStatus int
 		responseBody   string
 		stdoutRegexp   string
+		taskStatus     task.TaskStatus
 	}{
 		{
 			name:           "print-hosts-file",
@@ -25,6 +27,7 @@ func TestTaskLogs__PrintFile(t *testing.T) {
 			responseStatus: http.StatusCreated,
 			responseBody:   "",
 			stdoutRegexp:   "localhost",
+			taskStatus:     task.Succeeded,
 		},
 		{
 			name:           "print-non-existing-file",
@@ -32,6 +35,7 @@ func TestTaskLogs__PrintFile(t *testing.T) {
 			responseStatus: http.StatusInternalServerError,
 			responseBody:   "Error when executing the task: exit status 1",
 			stdoutRegexp:   fmt.Sprintf(helper.NoFileErrMessage, "non-existing-file.txt"),
+			taskStatus:     task.Failed,
 		},
 	}
 
@@ -40,7 +44,8 @@ func TestTaskLogs__PrintFile(t *testing.T) {
 			api := &worker.Api{
 				Worker: worker.NewWorker(),
 			}
-			request := helper.NewTaskPostRequest(helper.PrintFileTask(tc.name, tc.path))
+			testTask := helper.PrintFileTask(tc.name, tc.path)
+			request := helper.NewTaskPostRequest(testTask)
 			responseRecorder := httptest.NewRecorder()
 
 			stdout := helper.CaptureStdout(func() {
@@ -49,7 +54,13 @@ func TestTaskLogs__PrintFile(t *testing.T) {
 
 			assert.Equal(t, tc.responseStatus, responseRecorder.Code)
 			assert.Equal(t, tc.responseBody, responseRecorder.Body.String())
+			assert.Equal(t, 1, api.Worker.LenTasks(), "Worker should have 1 task")
 			assert.Regexp(t, tc.stdoutRegexp, stdout)
+
+			persistedTask := api.Worker.GetTask(testTask.ID)
+
+			assert.NotNil(t, persistedTask, "Persisted task ID should match the one from request")
+			assert.Equal(t, tc.taskStatus, persistedTask.Status)
 		})
 	}
 }
