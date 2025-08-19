@@ -1,4 +1,12 @@
 services:
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus:/prometheus
+
   worker:
     build: .
     deploy:
@@ -8,3 +16,6 @@ services:
           memory: 64MB
     ports:
       - 8080:8080
+
+volumes:
+  prometheus:

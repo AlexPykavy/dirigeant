@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -22,6 +23,8 @@ func main() {
 		r.Post("/", api.HandleCreateTask)
 		r.Delete("/{id}", api.HandleDeleteTask)
 	})
+
+	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 
 	http.ListenAndServe(":8080", r)
 }
